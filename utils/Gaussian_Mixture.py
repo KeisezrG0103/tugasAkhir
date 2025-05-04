@@ -327,7 +327,7 @@ def GMM_summary(gmm_model, data=None):
             "davies_bouldin_score": db_score if data is not None else None,
             "calinski_harabasz_score": ch_score if data is not None else None
         },
-        "n_clusters": gmm_model.n_components,
+        "n_clusters": int(gmm_model.n_components),
         "weights": gmm_model.weights_,
         "means": gmm_model.means_,
         "covariances": gmm_model.covariances_,
