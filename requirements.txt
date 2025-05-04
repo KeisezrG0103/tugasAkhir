@@ -30,3 +30,5 @@ jupyterlab>=3.0.0
 
 statsmodels>=0.13.0  # For statistical models
 networkx>=2.5  # For network analysis
+
+kneed>=0.7.0  # For finding the elbow in KMeans clustering
