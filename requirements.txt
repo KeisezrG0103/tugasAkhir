@@ -27,3 +27,5 @@ python-dotenv>=0.19.0  # For managing API keys
 
 # For Jupyter Notebook development (optional)
 jupyterlab>=3.0.0
+
+statsmodels>=0.13.0  # For statistical models
