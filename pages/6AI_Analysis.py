@@ -73,23 +73,34 @@ question_mapping = {
 }
 
 
-if "api_key" not in st.session_state:
-    st.session_state.api_key = ""
+api_key = None
 
-# Get API key using secure text input
-api_key = st.text_input(
-    "Enter your API key here:",
-    value=st.session_state.api_key,
-    type="password"
-)
+# Try to get API key from secrets
+try:
+    api_key = st.secrets["GEMINI_API_KEY"]
+    st.success("✅ API key loaded from secrets")
+except (KeyError, FileNotFoundError):
+    # If not in secrets, check session state or request from user
+    if "api_key" not in st.session_state:
+        st.session_state.api_key = ""
 
-# Store API key in session state to persist between reruns
-if api_key:
-    st.session_state.api_key = api_key
+    # Get API key using secure text input
+    api_key = st.text_input(
+        "Enter your Gemini API key:",
+        value=st.session_state.api_key,
+        type="password",
+        help="API key not found in secrets. Please enter manually."
+    )
+
+    # Store API key in session state to persist between reruns
+    if api_key:
+        st.session_state.api_key = api_key
 
 if not api_key:
-    st.error("API key is required to use this feature.")
+    st.error("❌ API key is required to use this feature.")
+    st.info("To avoid entering your API key every time, add it to .streamlit/secrets.toml as: GEMINI_API_KEY = 'your-key-here'")
     st.stop()
+
 # API URL
 url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key={api_key}"
 
