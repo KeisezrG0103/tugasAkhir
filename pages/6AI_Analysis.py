@@ -72,10 +72,7 @@ question_mapping = {
     'm9': 'Saya merasa tidak nyaman jika saya tidak mampu membeli barang yang saya inginkan.'
 }
 
-# API key from st.secrets
-# api_key = st.secrets.get("API_KEY", "AIzaSyDEbXyMmraZn57z-Xja-Ucr6TEWYjnU6sw")
 
-# Initialize API key in session state if not present
 if "api_key" not in st.session_state:
     st.session_state.api_key = ""
 
