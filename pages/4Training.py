@@ -176,8 +176,6 @@ if use_algorithm == "Kmeans":
     st.write("### Hasil K-Means")
     st.dataframe(cluster_df, use_container_width=True)
 
-    st.write(st.session_state.summary)
-
 
 if use_algorithm == "Hierarchical":
     st.subheader("Hierarchical Clustering")
@@ -206,7 +204,6 @@ if use_algorithm == "Hierarchical":
         st.success(
             f"Hierarchical clustering completed with {st.session_state.hc_clusters} clusters")
         hc.hc_summary(model, scaled_data, labels)
-        st.write(st.session_state.summary)
 
 
 if use_algorithm == "Gaussian Mixture Model":
@@ -229,4 +226,3 @@ if use_algorithm == "Gaussian Mixture Model":
     st.session_state.cluster_results_df = cluster_df
 
     gmm.GMM_summary(gmm_result, scaled_data)
-    st.write(st.session_state.summary)

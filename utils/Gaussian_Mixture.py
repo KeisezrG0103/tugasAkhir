@@ -338,8 +338,6 @@ def GMM_summary(gmm_model, data=None):
         }
     }
 
-    st.write("Saving summary to session state...")
-
     st.session_state.summary = summary
 
     return gmm_model
