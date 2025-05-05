@@ -5,6 +5,7 @@ import utils.data_visualization as dv
 import dotenv
 import os
 # dotenv.load_dotenv()
+from pathlib import Path
 
 st.set_page_config(
     page_title="TA",
@@ -13,11 +14,30 @@ st.set_page_config(
 )
 
 if 'df' not in st.session_state:
-    # Load environment variables from .env file
-    # Get data path from environment variables
-    data_path = os.getenv("data/ta_dataset.csv")
-    # Load data using the path
-    df = dp.data_loader(data_path)
+    try:
+        # Use direct path instead of trying to get it from environment variables
+        data_path = "data/ta_dataset.csv"
+
+        # Check if file exists
+        if not Path(data_path).exists():
+            st.error(f"File not found: {data_path}")
+            st.info("Please make sure the data file exists in the correct location.")
+            st.stop()
+
+        # Load data using the path
+        df = dp.data_loader(data_path)
+        st.success(f"Data loaded successfully from {data_path}")
+    except Exception as e:
+        st.error(f"Error loading data: {str(e)}")
+        st.info("Using the direct path as fallback")
+
+        # Fallback to the hardcoded path that's used later in the code
+        try:
+            df = dp.data_loader("data/ta_dataset.csv")
+            st.success("Data loaded successfully from fallback path")
+        except Exception as e2:
+            st.error(f"Failed to load data from fallback path: {str(e2)}")
+            st.stop()
 else:
     df = st.session_state.df
 
