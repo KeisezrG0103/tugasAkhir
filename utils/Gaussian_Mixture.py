@@ -281,7 +281,6 @@ def GMM_summary(gmm_model, data=None):
         # Get cluster labels
         labels = gmm_model.predict(data)
 
-        # Only calculate metrics if there are multiple clusters and sufficient samples
         if gmm_model.n_components > 1 and data.shape[0] > gmm_model.n_components:
             try:
                 # Create columns for metrics display

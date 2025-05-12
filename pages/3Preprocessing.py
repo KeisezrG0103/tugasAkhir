@@ -84,3 +84,21 @@ else:
 st.write("## Multicollinearity")
 dp.plot_correlation_matrix(df, threshold)
 dp.graph_pairwise_correlation(df, threshold)
+
+
+# # Z score for seeing outliers
+# st.write("## Z Score")
+# z_score = dp.process_with_outlier_detection(df)
+# st.dataframe(z_score)
+
+# st.session_state.df = z_score
+
+# Replace Z-score section with IQR method
+st.write("## Deteksi Outlier")
+st.write("Menggunakan metode IQR untuk mendeteksi outlier dalam data")
+
+# Detect and handle outliers using IQR
+iqr_processed_df = dp.process_with_iqr_outlier_detection(df)
+st.dataframe(iqr_processed_df)
+
+st.session_state.df = iqr_processed_df

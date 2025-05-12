@@ -1,5 +1,9 @@
 import streamlit as st
 from utils.data_preprocessing import data_loader
+import qrcode
+from PIL import Image
+import io
+import base64
 st.set_page_config(
     page_title="TA",
     layout="wide",
@@ -35,24 +39,57 @@ if 'df' not in st.session_state:
 df = st.session_state.df
 
 
+def generate_qrcode(url):
+    qr = qrcode.QRCode(
+        version=1,
+        error_correction=qrcode.constants.ERROR_CORRECT_L,
+        box_size=10,
+        border=4,
+    )
+    qr.add_data(url)
+    qr.make(fit=True)
+
+    img = qr.make_image(fill_color="black", back_color="white")
+
+    # Convert PIL image to bytes
+    buffered = io.BytesIO()
+    img.save(buffered, format="PNG")
+    img_str = base64.b64encode(buffered.getvalue()).decode()
+
+    return img_str
+
+
+survey_url = "https://docs.google.com/forms/d/e/1FAIpQLSe49Y8zX6w9C_k-6dLAChkCGrxSwZkL16lXqfwXkS7VIfjxaw/viewform?usp=sharing"
+
+# Generate QR code
+qr_code = generate_qrcode(survey_url)
 header_container = st.container()
 
 with header_container:
-    # Use columns with relative proportions instead of fixed spec
+    # Use columns with relative proportions
     col1, col2 = st.columns([5, 1])
 
     with col1:
         st.title("Latar Belakang")
 
     with col2:
-        # Vertically center the button
-        st.write("")  # Create some space
-        st.link_button(
-            label="Form Survei",
-            url="https://docs.google.com/forms/d/e/1FAIpQLSe49Y8zX6w9C_k-6dLAChkCGrxSwZkL16lXqfwXkS7VIfjxaw/viewform?usp=sharing",
-            use_container_width=True,
-            type="primary",
-        )
+        qr_container = st.container()
+
+        with qr_container:
+            # Create column for image and text
+            st.image(
+                f"data:image/png;base64,{qr_code}",
+                width=120,
+                caption="Scan untuk Survei"
+            )
+
+            # Add button under the QR code
+            st.link_button(
+                label="Form Survei",
+                url=survey_url,
+                use_container_width=True,
+                type="primary",
+            )
 
 st.markdown(
     """

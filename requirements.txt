@@ -32,3 +32,9 @@ statsmodels>=0.13.0  # For statistical models
 networkx>=2.5  # For network analysis
 
 kneed>=0.7.0  # For finding the elbow in KMeans clustering
+
+qrcode>=0.26  # For generating QR codes
+PIL>=1.7.0  # For image processing
+
+io >=1.0.1  # For handling binary data
+base64>=0.2.1  # For encoding binary data to base64
