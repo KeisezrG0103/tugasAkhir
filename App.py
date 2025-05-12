@@ -28,13 +28,32 @@ if 'tukey_results' not in st.session_state:
 if 'silhoutte_results' not in st.session_state:
     st.session_state.silhoutte_results = None
 
+
 if 'df' not in st.session_state:
     st.session_state.df = data_loader('data/ta_dataset.csv')
 
 df = st.session_state.df
 
 
-st.title("Latar Belakang")
+header_container = st.container()
+
+with header_container:
+    # Use columns with relative proportions instead of fixed spec
+    col1, col2 = st.columns([5, 1])
+
+    with col1:
+        st.title("Latar Belakang")
+
+    with col2:
+        # Vertically center the button
+        st.write("")  # Create some space
+        st.link_button(
+            label="Form Survei",
+            url="https://docs.google.com/forms/d/e/1FAIpQLSe49Y8zX6w9C_k-6dLAChkCGrxSwZkL16lXqfwXkS7VIfjxaw/viewform?usp=sharing",
+            use_container_width=True,
+            type="primary",
+        )
+
 st.markdown(
     """
     <div style="text-align: justify; text-indent: 30px;">

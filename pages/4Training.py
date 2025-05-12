@@ -199,7 +199,6 @@ if use_algorithm == "Hierarchical":
     # Store results in session state if needed
     if labels is not None:
         st.session_state.clusters = labels
-        # clustered_data is already saved in hierarchical_clustering_with_options
 
         st.success(
             f"Hierarchical clustering completed with {st.session_state.hc_clusters} clusters")

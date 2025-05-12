@@ -83,22 +83,20 @@ cluster_col = 'Cluster' if 'Cluster' in df.columns else 'cluster'
 
 
 for feature in all_features:
-    # Group data by cluster for this feature
     result = ph.run_anova_analysis(df, cluster_col, feature)
 
     anova_results.append(result)
     st.session_state.anova_results = anova_results
 
 
-# Display ANOVA results in a table
 if anova_results:
     st.subheader("Hasil One-Way ANOVA")
 
     # Create summary table
     anova_df = pd.DataFrame([{
         "Feature": r["feature"],
-        "F-statistic": r['f_statistic'],  # Store raw numeric values
-        "p-value": r['p_value'],          # Store raw numeric values
+        "F-statistic": r['f_statistic'],
+        "p-value": r['p_value'],
         "Signifikan": "Ya ✅" if r["significant"] else "Tidak ❌"
     } for r in anova_results])
 
