@@ -198,7 +198,7 @@ def plot_correlation_matrix(df, threshold=0.8):
     """
 
     corr_mat = df.corr()
-    fig, ax = plt.subplots(figsize=(10, 8))
+    fig, ax = plt.subplots(figsize=(8, 6))
 
     cax = ax.matshow(corr_mat, cmap='coolwarm')
     plt.colorbar(cax)
@@ -233,7 +233,7 @@ def plot_correlation_matrix(df, threshold=0.8):
 def graph_pairwise_correlation(df, threshold=0.8):
     if any(col in df.columns for col in ['nama', 'score', 'total_fk']):
         df = df.drop(columns=['nama', 'score', 'total_fk'], errors='ignore')
-    fig_network, ax_network = plt.subplots(figsize=(10, 8))
+    fig_network, ax_network = plt.subplots(figsize=(8, 6))
     corr_mat = df.corr()
     # Create network graph
     G = nx.Graph()
@@ -256,7 +256,7 @@ def graph_pairwise_correlation(df, threshold=0.8):
     pos = nx.spring_layout(G, seed=42)
 
     # Draw the graph
-    nx.draw_networkx_nodes(G, pos, node_size=300,
+    nx.draw_networkx_nodes(G, pos, node_size=400,
                            node_color='lightblue', alpha=0.2, ax=ax_network)
     nx.draw_networkx_labels(G, pos, font_size=10, ax=ax_network)
     nx.draw_networkx_edges(G, pos, width=edge_weights,
@@ -271,19 +271,22 @@ def graph_pairwise_correlation(df, threshold=0.8):
 
 def perform_pca(dataframe, scaler_type, n_components):
     """
-    Perform PCA on the input dataframe.
+    Perform PCA on the input dataframe by domain.
 
     Args:
         dataframe: Input dataframe
         scaler_type: Type of scaler to use (StandardScaler, MinMaxScaler, RobustScaler)
-        n_components: Number of PCA components
+        n_components: Number of PCA components per domain
 
     Returns:
-        scaled_data: Original scaled data
-        pca_result: PCA transformed data
-        explained_variance: Explained variance ratio
-        cumulative_variance: Cumulative explained variance
+        scaled_data and PCA components per domain
     """
+    import numpy as np
+    import pandas as pd
+    from sklearn.decomposition import PCA
+    from sklearn.preprocessing import StandardScaler, MinMaxScaler, RobustScaler
+    import streamlit as st
+
     # Create the appropriate scaler
     if scaler_type == "StandardScaler":
         scaler_obj = StandardScaler()
@@ -291,17 +294,121 @@ def perform_pca(dataframe, scaler_type, n_components):
         scaler_obj = MinMaxScaler()
     elif scaler_type == "RobustScaler":
         scaler_obj = RobustScaler()
+    else:
+        scaler_obj = StandardScaler()  # Default
 
-        # Scale the data first
-    scaled_data = scaler_obj.fit_transform(dataframe)
+    # Define domain prefixes - using prefixes directly as keys
+    domains = {
+        "fa": "Financial Attitude",
+        "fb": "Financial Behavior",
+        "fk": "Financial Knowledge",
+        "m": "Materialism"
+    }
 
-    # Apply PCA
-    pca = PCA(n_components=n_components)
-    pca_result = pca.fit_transform(scaled_data)
-    explained_variance = pca.explained_variance_ratio_
+    # Make sure we're working with a copy of the DataFrame
+    dataframe = dataframe.copy()
+
+    # Convert all data to numeric and handle errors
+    for col in dataframe.columns:
+        dataframe[col] = pd.to_numeric(dataframe[col], errors='coerce')
+
+    # Fill any NaN values (from coercion) with column means
+    dataframe = dataframe.fillna(dataframe.mean())
+
+    # Extract and scale data for each domain
+    fa_data = dataframe.filter(like='fa')
+    fb_data = dataframe.filter(like='fb')
+    fk_data = dataframe.filter(like='fk')
+    m_data = dataframe.filter(like='m')
+
+    # Check if any domains are empty
+    if fa_data.empty:
+        st.warning("No Financial Attitude columns found.")
+        fa_data = pd.DataFrame(np.zeros((dataframe.shape[0], 1)))
+    if fb_data.empty:
+        st.warning("No Financial Behavior columns found.")
+        fb_data = pd.DataFrame(np.zeros((dataframe.shape[0], 1)))
+    if fk_data.empty:
+        st.warning("No Financial Knowledge columns found.")
+        fk_data = pd.DataFrame(np.zeros((dataframe.shape[0], 1)))
+    if m_data.empty:
+        st.warning("No Materialism columns found.")
+        m_data = pd.DataFrame(np.zeros((dataframe.shape[0], 1)))
+
+    # Scale the data for each domain separately
+    try:
+        scaled_data_fa = scaler_obj.fit_transform(fa_data)
+    except Exception as e:
+        st.error(f"Error scaling Financial Attitude data: {str(e)}")
+        scaled_data_fa = np.zeros((dataframe.shape[0], fa_data.shape[1]))
+
+    try:
+        scaled_data_fb = scaler_obj.fit_transform(fb_data)
+    except Exception as e:
+        st.error(f"Error scaling Financial Behavior data: {str(e)}")
+        scaled_data_fb = np.zeros((dataframe.shape[0], fb_data.shape[1]))
+
+    try:
+        scaled_data_fk = scaler_obj.fit_transform(fk_data)
+    except Exception as e:
+        st.error(f"Error scaling Financial Knowledge data: {str(e)}")
+        scaled_data_fk = np.zeros((dataframe.shape[0], fk_data.shape[1]))
+
+    try:
+        scaled_data_m = scaler_obj.fit_transform(m_data)
+    except Exception as e:
+        st.error(f"Error scaling Materialism data: {str(e)}")
+        scaled_data_m = np.zeros((dataframe.shape[0], m_data.shape[1]))
+
+    # Apply PCA to each domain
+    # Financial Attitude
+    pca_fa = PCA(n_components=min(n_components, fa_data.shape[1]))
+    pca_result_fa = pca_fa.fit_transform(scaled_data_fa)
+    pca_result_fa_explained = pca_fa.explained_variance_ratio_
+
+    # Financial Behavior
+    pca_fb = PCA(n_components=min(n_components, fb_data.shape[1]))
+    pca_result_fb = pca_fb.fit_transform(scaled_data_fb)
+    pca_result_fb_explained = pca_fb.explained_variance_ratio_
+
+    # Financial Knowledge
+    pca_fk = PCA(n_components=min(n_components, fk_data.shape[1]))
+    pca_result_fk = pca_fk.fit_transform(scaled_data_fk)
+    pca_result_fk_explained = pca_fk.explained_variance_ratio_
+
+    # Materialism
+    pca_m = PCA(n_components=min(n_components, m_data.shape[1]))
+    pca_result_m = pca_m.fit_transform(scaled_data_m)
+    pca_result_m_explained = pca_m.explained_variance_ratio_
+
+    # Calculate cumulative variance
+    cumulative_variance_fa = np.cumsum(pca_result_fa_explained)
+    cumulative_variance_fb = np.cumsum(pca_result_fb_explained)
+    cumulative_variance_fk = np.cumsum(pca_result_fk_explained)
+    cumulative_variance_m = np.cumsum(pca_result_m_explained)
+
+    # Combined explained variance (weighted average)
+    total_cols = (fa_data.shape[1] + fb_data.shape[1] +
+                  fk_data.shape[1] + m_data.shape[1])
+
+    explained_variance = (
+        (pca_result_fa_explained * fa_data.shape[1] / total_cols) +
+        (pca_result_fb_explained * fb_data.shape[1] / total_cols) +
+        (pca_result_fk_explained * fk_data.shape[1] / total_cols) +
+        (pca_result_m_explained * m_data.shape[1] / total_cols)
+    )
+
     cumulative_variance = np.cumsum(explained_variance)
 
-    return scaled_data, pca_result, explained_variance, cumulative_variance
+    # Create scaled data for use in clustering
+    scaled_data = np.column_stack((scaled_data_fa, scaled_data_fb,
+                                  scaled_data_fk, scaled_data_m))
+
+    return (scaled_data, pca_result_fa, pca_result_fb, pca_result_fk, pca_result_m,
+            pca_result_fa_explained, pca_result_fb_explained, pca_result_fk_explained,
+            pca_result_m_explained, cumulative_variance, cumulative_variance_fa,
+            cumulative_variance_fb, cumulative_variance_fk, cumulative_variance_m,
+            explained_variance)
 
 
 def one_way_anova(df, feature, group_col='Cluster', label_col=None, algorithm_name=None):
@@ -405,3 +512,137 @@ def one_way_anova(df, feature, group_col='Cluster', label_col=None, algorithm_na
         }
 
     return result
+
+
+def test_normality(df, visual=True):
+    """
+    Test if the data follows a normal distribution using statistical tests and visual methods.
+
+    Args:
+        df: Input dataframe
+        visual: Whether to create visual plots (default: True)
+
+    Returns:
+        normality_results: DataFrame with normality test results for each feature
+    """
+    from scipy import stats
+    import matplotlib.pyplot as plt
+    import seaborn as sns
+    import pandas as pd
+    import numpy as np
+
+    st.subheader("Uji Normalitas Data")
+
+    # Remove any non-numeric columns
+    numeric_df = df.select_dtypes(include=[np.number])
+
+    # Initialize results dictionary
+    results = []
+
+    # Loop through each numeric column
+    for col in numeric_df.columns:
+        # Skip if column has insufficient data
+        if len(numeric_df[col].dropna()) < 3:
+            continue
+
+        # Perform Shapiro-Wilk test (best for smaller datasets, n < 5000)
+        stat_shapiro, p_shapiro = stats.shapiro(numeric_df[col].dropna())
+
+        # Perform D'Agostino-Pearson test
+        stat_dagostino, p_dagostino = stats.normaltest(
+            numeric_df[col].dropna())
+
+        # Collect results
+        results.append({
+            'Feature': col,
+            'Shapiro_Stat': stat_shapiro,
+            'Shapiro_p': p_shapiro,
+            'Shapiro_Normal': p_shapiro > 0.05,
+            'DAgostino_Stat': stat_dagostino,
+            'DAgostino_p': p_dagostino,
+            'DAgostino_Normal': p_dagostino > 0.05
+        })
+
+    # Convert to DataFrame
+    results_df = pd.DataFrame(results)
+
+    # Create summary
+    normal_features = results_df[results_df['Shapiro_Normal']
+                                 & results_df['DAgostino_Normal']]
+    non_normal_features = results_df[~(
+        results_df['Shapiro_Normal'] & results_df['DAgostino_Normal'])]
+
+    # Display results
+    st.write("### Hasil Uji Normalitas")
+    st.write(f"Total fitur yang diuji: {len(results_df)}")
+    st.write(f"Fitur dengan distribusi normal: {len(normal_features)}")
+    st.write(
+        f"Fitur dengan distribusi tidak normal: {len(non_normal_features)}")
+
+    # Show detailed results in expandable section
+    with st.expander("Lihat hasil detil uji normalitas"):
+        st.dataframe(results_df)
+
+    # Create visualizations if requested
+    if visual and not results_df.empty:
+        st.write("### Visualisasi Distribusi Data")
+
+        # Let user select which feature to visualize
+        selected_feature = st.selectbox(
+            "Pilih fitur untuk visualisasi distribusi:",
+            options=results_df['Feature'].tolist()
+        )
+
+        # Create QQ plot and histogram for selected feature
+        fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(14, 6))
+
+        # QQ Plot
+        stats.probplot(numeric_df[selected_feature].dropna(), plot=ax1)
+        ax1.set_title(f'Q-Q Plot: {selected_feature}')
+
+        # Histogram with normal curve
+        sns.histplot(numeric_df[selected_feature], kde=True, ax=ax2)
+        ax2.set_title(f'Histogram: {selected_feature}')
+
+        # Add normality test results to plot
+        feature_results = results_df[results_df['Feature']
+                                     == selected_feature].iloc[0]
+        is_normal = feature_results['Shapiro_Normal'] and feature_results['DAgostino_Normal']
+        conclusion = "Normal" if is_normal else "Tidak Normal"
+
+        plt.figtext(0.5, 0.01,
+                    f"Shapiro-Wilk p-value: {feature_results['Shapiro_p']:.4f}\n"
+                    f"D'Agostino p-value: {feature_results['DAgostino_p']:.4f}\n"
+                    f"Kesimpulan: Distribusi {conclusion}",
+                    ha="center", fontsize=12, bbox={"facecolor": "orange", "alpha": 0.2, "pad": 5})
+
+        plt.tight_layout()
+        st.pyplot(fig)
+
+        # Domain-specific normality analysis
+        if st.checkbox("Tampilkan analisis normalitas berdasarkan domain"):
+            domains = {
+                "fa": "Financial Attitude",
+                "fb": "Financial Behavior",
+                "fk": "Financial Knowledge",
+                "m": "Materialism"
+            }
+
+            for prefix, domain_name in domains.items():
+                domain_features = [
+                    f for f in results_df['Feature'] if f.startswith(prefix)]
+                if not domain_features:
+                    continue
+
+                domain_results = results_df[results_df['Feature'].isin(
+                    domain_features)]
+                normal_count = len(
+                    domain_results[domain_results['Shapiro_Normal'] & domain_results['DAgostino_Normal']])
+
+                st.write(f"#### Domain: {domain_name}")
+                st.write(f"Total fitur: {len(domain_features)}")
+                st.write(
+                    f"Fitur dengan distribusi normal: {normal_count} ({normal_count/len(domain_features)*100:.1f}%)")
+                st.dataframe(domain_results)
+
+    return results_df
