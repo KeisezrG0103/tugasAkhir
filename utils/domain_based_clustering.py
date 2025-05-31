@@ -469,22 +469,22 @@ def analyze_domain_clusters(df_original, domain_results):
                 crosstab_figs.append(fig)
 
         # Show preliminary results in Streamlit
-        if len(crosstab_figs) > 0:
-            st.subheader("Cross-Domain Cluster Relationships")
-            st.markdown("""
-            These heatmaps show how clusters from different domains relate to each other. 
-            Higher values (darker colors) indicate a stronger association between clusters.
-            """)
+        # if len(crosstab_figs) > 0:
+        #     st.subheader("Cross-Domain Cluster Relationships")
+        #     st.markdown("""
+        #     These heatmaps show how clusters from different domains relate to each other.
+        #     Higher values (darker colors) indicate a stronger association between clusters.
+        #     """)
 
-            # Create tabs for each cross-tabulation
-            tab_names = [f"{domain_names.get(d1, d1)} vs {domain_names.get(d2, d2)}"
-                         for d1, d2 in [cross_name.split('_vs_') for cross_name in cross_tabs.keys()]]
+        #     # Create tabs for each cross-tabulation
+        #     tab_names = [f"{domain_names.get(d1, d1)} vs {domain_names.get(d2, d2)}"
+        #                  for d1, d2 in [cross_name.split('_vs_') for cross_name in cross_tabs.keys()]]
 
-            tabs = st.tabs(tab_names)
+        #     tabs = st.tabs(tab_names)
 
-            for i, tab in enumerate(tabs):
-                with tab:
-                    st.pyplot(crosstab_figs[i])
+        #     for i, tab in enumerate(tabs):
+        #         with tab:
+        #             st.pyplot(crosstab_figs[i])
 
     # # Create parallel coordinates plot for visualizing cluster assignments across domains
     # parallel_data = df_with_clusters[cluster_cols].copy()
