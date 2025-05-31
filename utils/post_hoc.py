@@ -446,7 +446,7 @@ def prepare_tukey_data(groups, result, data, labels):
     for cluster_idx, cluster_data in enumerate(groups):
         data.extend(cluster_data)
         labels.extend(
-            [f"Cluster {cluster_idx+1}"] * len(cluster_data))
+            [f"Cluster {cluster_idx}"] * len(cluster_data))
 
         # Run Tukey's test
     tukey_result = pairwise_tukeyhsd(data, labels, alpha=0.05)
@@ -657,7 +657,7 @@ def Interactive_analysis(anova_results, domain_dict):
                                 try:
                                     st.write("#### Distribusi per Cluster")
                                     fig = px.box(
-                                        x=[f"Cluster {i+1}" for i, g in enumerate(
+                                        x=[f"Cluster {i}" for i, g in enumerate(
                                             feature_result['groups']) for _ in range(len(g))],
                                         y=[val for group in feature_result['groups']
                                            for val in group],
@@ -682,7 +682,7 @@ def Interactive_analysis(anova_results, domain_dict):
                                                 for group in feature_result['groups']]
 
                                     fig = px.bar(
-                                        x=[f"Cluster {i+1}" for i in range(
+                                        x=[f"Cluster {i}" for i in range(
                                             len(means))],
                                         y=means,
                                         error_y=std_errs,
