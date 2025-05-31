@@ -532,12 +532,12 @@ def analyze_domain_clusters(df_original, domain_results):
     if sankey_fig:
         st.plotly_chart(sankey_fig, use_container_width=True)
 
-    # Display parallel coordinates plot
-    st.subheader("Parallel Coordinates Plot")
-    st.markdown("""
-    This plot shows how respondents are distributed across clusters in different domains.
-    Each line represents a respondent, and you can see their cluster assignments across all domains.
-    """)
+    # # Display parallel coordinates plot
+    # st.subheader("Parallel Coordinates Plot")
+    # st.markdown("""
+    # This plot shows how respondents are distributed across clusters in different domains.
+    # Each line represents a respondent, and you can see their cluster assignments across all domains.
+    # """)
     # st.pyplot(parallel_fig)
 
     # Display common patterns
