@@ -100,14 +100,14 @@ def domain_clustering(df, domain_prefixes, scaled_data, algorithm='kmeans', rand
             }
 
         if algorithm == 'hierarchical':
-            elbow = hc.find_elbow(
+            optimal_cluster = hc.multi_criteria_validation(
                 domain_scaled_data,
-                plot=False,
+                plot=True,
                 cluster_range=n_clusters_range
             )
 
-            # Ensure elbow returns an integer value
-            domain_optimal_k = int(elbow)
+            # Ensure optimal_cluster returns an integer value
+            domain_optimal_k = int(optimal_cluster)
 
             # Apply hierarchical clustering with optimal k for this domain
             from sklearn.cluster import AgglomerativeClustering
@@ -126,6 +126,7 @@ def domain_clustering(df, domain_prefixes, scaled_data, algorithm='kmeans', rand
             ch_score = calinski_harabasz_score(domain_scaled_data, labels)
 
             # Perform PCA for visualization
+            #perform pca when domain is not use pca
             pca = PCA(n_components=2)
             pca_data = pca.fit_transform(domain_scaled_data)
             explained_var = pca.explained_variance_ratio_

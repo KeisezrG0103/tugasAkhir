@@ -12,14 +12,11 @@ st.set_page_config(
     initial_sidebar_state="expanded",
 )
 
-# Always load the original data for Data Explorer page
 data_path = "data/ta_dataset.csv"
-# Store original data in session state if not already there
 if 'original_df' not in st.session_state:
     st.session_state.original_df = dp.data_loader(data_path)
     st.session_state.original_df = st.session_state.original_df[(st.session_state.original_df['Umur'] > 17) & (st.session_state.original_df['Umur'] <= 23)]  # Filter data for age between 18 and 23
 
-# Use original data for this page
 df = st.session_state.original_df
 
 st.title("Eksplorasi Data")
@@ -32,9 +29,7 @@ st.header("Visualisasi Data")
 
 # Select the column to visualize
 df_copy = df.copy()
-# remove columns that have umur < 17 dan >23
 
-# Remove non-numeric columns for visualization
 col_to_remove = ['Email', 'Nama', 'Timestamp', 'email', 'nama', 'timestamp']
 for col in col_to_remove:
     if col in df_copy.columns:

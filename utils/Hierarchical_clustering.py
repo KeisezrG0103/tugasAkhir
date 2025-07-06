@@ -38,8 +38,11 @@ def wss_calculation(K_range, data):
 
 
 def find_elbow(data, plot=True, cluster_range=range(1, 11)):
+   return find_optimal_clusters(data, plot, cluster_range)
+
+def multi_criteria_validation(data, plot=True, cluster_range=range(1, 11)):
     """
-    Find the elbow point in the WSS plot.
+    Perform multi-criteria validation for clustering using Davies-Bouldin, Calinski-Harabasz, and Silhouette scores.
 
     Parameters:
     data: The data to cluster
@@ -47,55 +50,281 @@ def find_elbow(data, plot=True, cluster_range=range(1, 11)):
     cluster_range: Range of cluster numbers to try
 
     Returns:
-    int: The optimal number of clusters (elbow point)
+    int: The optimal number of clusters
     """
-    wss_calc = wss_calculation(cluster_range, data)
+    return find_optimal_clusters(data, plot, cluster_range)
 
-    # Find the elbow point before plotting
-    elbow_point = np.diff(np.diff(wss_calc)).argmax() + 2
+
+def internal_metrics_calculation(K_range, data):
+    """
+    Calculate internal clustering metrics for different numbers of clusters.
+
+    Parameters:
+    K_range: A range object or iterable with the cluster numbers to try
+    data: The data to cluster
+
+    Returns:
+    Tuple of (davies_bouldin_scores, calinski_harabasz_scores, silhouette_scores)
+    """
+    from sklearn.metrics import davies_bouldin_score, calinski_harabasz_score, silhouette_score
+    
+    davies_bouldin_scores = []
+    calinski_harabasz_scores = []
+    silhouette_scores = []
+    
+    for k in K_range:
+        if k == 1:
+            # These metrics are not defined for k=1
+            davies_bouldin_scores.append(float('inf'))  # Worst possible DB score
+            calinski_harabasz_scores.append(0.0)  # Worst possible CH score
+            silhouette_scores.append(0.0)  # Undefined silhouette
+        else:
+            cluster = AgglomerativeClustering(
+                n_clusters=k, linkage="ward"
+            )
+            labels = cluster.fit_predict(data)
+            
+            # Davies-Bouldin Index (lower is better)
+            db_score = davies_bouldin_score(data, labels)
+            davies_bouldin_scores.append(db_score)
+            
+            # Calinski-Harabasz Index (higher is better)
+            ch_score = calinski_harabasz_score(data, labels)
+            calinski_harabasz_scores.append(ch_score)
+            
+            # Silhouette Score (higher is better)
+            sil_score = silhouette_score(data, labels)
+            silhouette_scores.append(sil_score)
+    
+    return davies_bouldin_scores, calinski_harabasz_scores, silhouette_scores
+
+
+def find_optimal_clusters(data, plot=True, cluster_range=range(1, 11)):
+    """
+    Find the optimal number of clusters using internal clustering metrics.
+    
+    Uses Davies-Bouldin Index (minimize) and Calinski-Harabasz Index (maximize)
+    with Silhouette Score as validation.
+
+    Parameters:
+    data: The data to cluster
+    plot: Whether to display the plot
+    cluster_range: Range of cluster numbers to try
+
+    Returns:
+    int: The optimal number of clusters
+    """
+    db_scores, ch_scores, sil_scores = internal_metrics_calculation(cluster_range, data)
+    
+    # Find optimal k for each metric (excluding k=1)
+    valid_range = [k for k in cluster_range if k > 1]
+    valid_db = [db_scores[i] for i, k in enumerate(cluster_range) if k > 1]
+    valid_ch = [ch_scores[i] for i, k in enumerate(cluster_range) if k > 1]
+    valid_sil = [sil_scores[i] for i, k in enumerate(cluster_range) if k > 1]
+    
+    # Davies-Bouldin: minimize (lower is better)
+    optimal_db_idx = valid_db.index(min(valid_db))
+    optimal_db_k = valid_range[optimal_db_idx]
+    
+    # Calinski-Harabasz: maximize (higher is better)
+    optimal_ch_idx = valid_ch.index(max(valid_ch))
+    optimal_ch_k = valid_range[optimal_ch_idx]
+    
+    # Silhouette: maximize (higher is better)
+    optimal_sil_idx = valid_sil.index(max(valid_sil))
+    optimal_sil_k = valid_range[optimal_sil_idx]
+    
+    # Consensus decision: prioritize Davies-Bouldin and Calinski-Harabasz
+    if optimal_db_k == optimal_ch_k:
+        # Both agree
+        optimal_k = optimal_db_k
+        method_used = f"Consensus DB+CH (k={optimal_k})"
+    elif optimal_db_k == optimal_sil_k:
+        # DB and Silhouette agree
+        optimal_k = optimal_db_k
+        method_used = f"Consensus DB+Sil (k={optimal_k})"
+    elif optimal_ch_k == optimal_sil_k:
+        # CH and Silhouette agree
+        optimal_k = optimal_ch_k
+        method_used = f"Consensus CH+Sil (k={optimal_k})"
+    else:
+        # No consensus, use Davies-Bouldin (most reliable for internal validation)
+        optimal_k = optimal_db_k
+        method_used = f"Davies-Bouldin Best (k={optimal_k})"
 
     if plot:
         import matplotlib.pyplot as plt
         import streamlit as st
+        import pandas as pd
+        import numpy as np
 
-        # Plot the results
-        fig, ax = plt.subplots(figsize=(10, 6))
-        ax.set_title("Optimal number of clusters for Agglomerative Clustering")
-        ax.set_xlabel("Number of clusters (k)")
-        ax.set_ylabel("Total intra-cluster variation (WSS)")
-
-        # Plot all points
-        ax.plot(list(cluster_range), wss_calc, marker="o", linestyle='-', color='blue',
-                label='WSS values')
-
-        # Highlight the elbow point with a different color and larger marker
-        elbow_index = list(cluster_range).index(elbow_point)
-        ax.plot(elbow_point, wss_calc[elbow_index], 'ro', markersize=12,
-                label=f'Elbow Point (k={elbow_point})')
-
-        # Add vertical line at the elbow point
-        ax.axvline(x=elbow_point, color='r', linestyle='--', alpha=0.3)
-
-        # Add annotation arrow pointing to the elbow
-        ax.annotate(f'Optimal k={elbow_point}',
-                    xy=(elbow_point, wss_calc[elbow_index]),
-                    xytext=(
-                        elbow_point+1, wss_calc[elbow_index]+0.1*(max(wss_calc)-min(wss_calc))),
-                    arrowprops=dict(facecolor='black',
-                                    shrink=0.05, width=1.5, headwidth=8),
-                    fontsize=12)
-
-        ax.set_xticks(list(cluster_range))
-        ax.grid(True)
-        ax.legend()
-
-        # Display in Streamlit instead of plt.show()
+        # Create subplots for all three metrics
+        fig, ((ax1, ax2), (ax3, ax4)) = plt.subplots(2, 2, figsize=(15, 10))
+        
+        # Plot Davies-Bouldin Index (lower is better)
+        ax1.plot(valid_range, valid_db, marker="o", linestyle='-', color='red',
+                label='Davies-Bouldin Index', linewidth=2, markersize=8)
+        ax1.plot(optimal_db_k, valid_db[optimal_db_idx], 'ro', markersize=15,
+                label=f'Optimal DB (k={optimal_db_k})')
+        ax1.axvline(x=optimal_db_k, color='r', linestyle='--', alpha=0.5)
+        ax1.set_title("Davies-Bouldin Index (Lower is Better)")
+        ax1.set_xlabel("Number of clusters (k)")
+        ax1.set_ylabel("Davies-Bouldin Index")
+        ax1.grid(True, alpha=0.3)
+        ax1.legend()
+        ax1.set_xticks(valid_range)
+        
+        # Plot Calinski-Harabasz Index (higher is better)
+        ax2.plot(valid_range, valid_ch, marker="o", linestyle='-', color='blue',
+                label='Calinski-Harabasz Index', linewidth=2, markersize=8)
+        ax2.plot(optimal_ch_k, valid_ch[optimal_ch_idx], 'bo', markersize=15,
+                label=f'Optimal CH (k={optimal_ch_k})')
+        ax2.axvline(x=optimal_ch_k, color='b', linestyle='--', alpha=0.5)
+        ax2.set_title("Calinski-Harabasz Index (Higher is Better)")
+        ax2.set_xlabel("Number of clusters (k)")
+        ax2.set_ylabel("Calinski-Harabasz Index")
+        ax2.grid(True, alpha=0.3)
+        ax2.legend()
+        ax2.set_xticks(valid_range)
+        
+        # Plot Silhouette Score (higher is better)
+        ax3.plot(valid_range, valid_sil, marker="o", linestyle='-', color='green',
+                label='Silhouette Score', linewidth=2, markersize=8)
+        ax3.plot(optimal_sil_k, valid_sil[optimal_sil_idx], 'go', markersize=15,
+                label=f'Optimal Sil (k={optimal_sil_k})')
+        ax3.axvline(x=optimal_sil_k, color='g', linestyle='--', alpha=0.5)
+        ax3.axhline(y=0.5, color='g', linestyle=':', alpha=0.7, label='Good threshold (0.5)')
+        ax3.set_title("Silhouette Score (Higher is Better)")
+        ax3.set_xlabel("Number of clusters (k)")
+        ax3.set_ylabel("Silhouette Score")
+        ax3.grid(True, alpha=0.3)
+        ax3.legend()
+        ax3.set_xticks(valid_range)
+        
+        # Combined metrics plot with normalized scores
+        # Normalize scores to 0-1 scale for comparison
+        norm_db = [(max(valid_db) - score) / (max(valid_db) - min(valid_db)) for score in valid_db]  # Invert DB (lower is better)
+        norm_ch = [(score - min(valid_ch)) / (max(valid_ch) - min(valid_ch)) for score in valid_ch]
+        norm_sil = [(score - min(valid_sil)) / (max(valid_sil) - min(valid_sil)) for score in valid_sil]
+        
+        ax4.plot(valid_range, norm_db, marker="o", linestyle='-', color='red',
+                label='Davies-Bouldin (norm)', linewidth=2, markersize=6)
+        ax4.plot(valid_range, norm_ch, marker="s", linestyle='-', color='blue',
+                label='Calinski-Harabasz (norm)', linewidth=2, markersize=6)
+        ax4.plot(valid_range, norm_sil, marker="^", linestyle='-', color='green',
+                label='Silhouette (norm)', linewidth=2, markersize=6)
+        ax4.axvline(x=optimal_k, color='black', linestyle='--', alpha=0.7,
+                   label=f'Selected k={optimal_k}')
+        ax4.set_title("Normalized Metrics Comparison")
+        ax4.set_xlabel("Number of clusters (k)")
+        ax4.set_ylabel("Normalized Score (0-1)")
+        ax4.grid(True, alpha=0.3)
+        ax4.legend()
+        ax4.set_xticks(valid_range)
+        
+        plt.tight_layout()
         st.pyplot(fig)
 
-    # Use st.write instead of print for Streamlit
-    import streamlit as st
+        # Create comprehensive metrics table
+        st.subheader("Internal Clustering Metrics Analysis")
 
-    return elbow_point
+        table_data = {
+            'k': list(cluster_range),
+            'Davies-Bouldin': ['-' if k == 1 else f"{score:.4f}" 
+                             for k, score in zip(cluster_range, db_scores)],
+            'Calinski-Harabasz': ['-' if k == 1 else f"{score:.2f}" 
+                                for k, score in zip(cluster_range, ch_scores)],
+            'Silhouette': ['-' if k == 1 else f"{score:.4f}" 
+                         for k, score in zip(cluster_range, sil_scores)],
+            'DB Rank': ['-' if k == 1 else str(sorted(valid_db).index(db_scores[i]) + 1)
+                       for i, k in enumerate(cluster_range)],
+            'CH Rank': ['-' if k == 1 else str(sorted(valid_ch, reverse=True).index(ch_scores[i]) + 1)
+                       for i, k in enumerate(cluster_range)],
+            'SELECTED': ['✓' if k == optimal_k else '' for k in cluster_range]
+        }
+        
+        df = pd.DataFrame(table_data)
+        
+        # Highlight selected row and best scores
+        def highlight_metrics(row):
+            if row['SELECTED'] == '✓':
+                return ['background-color: #FFD700'] * len(row)  
+            return [''] * len(row)
+        
+        st.dataframe(df.style.apply(highlight_metrics, axis=1), use_container_width=True)
+        
+        # Method comparison and explanation
+        st.subheader("Metrics Analysis")
+        
+        col1, col2, col3 = st.columns(3)
+        
+        with col1:
+            st.write("**Davies-Bouldin Index:**")
+            st.write(f"- **Best k**: {optimal_db_k}")
+            st.write(f"- **Score**: {valid_db[optimal_db_idx]:.4f}")
+            st.write("- **Logic**: Minimize intra-cluster distance")
+            st.write("- **Interpretation**: Lower = better separation")
+        
+        with col2:
+            st.write("**Calinski-Harabasz Index:**")
+            st.write(f"- **Best k**: {optimal_ch_k}")
+            st.write(f"- **Score**: {valid_ch[optimal_ch_idx]:.2f}")
+            st.write("- **Logic**: Maximize between/within cluster ratio")
+            st.write("- **Interpretation**: Higher = better separation")
+        
+        with col3:
+            st.write("**Silhouette Score:**")
+            st.write(f"- **Best k**: {optimal_sil_k}")
+            st.write(f"- **Score**: {valid_sil[optimal_sil_idx]:.4f}")
+            st.write("- **Logic**: Balance cohesion & separation")
+            st.write("- **Interpretation**: Higher = better quality")
+        
+        
+        if optimal_db_k == optimal_ch_k == optimal_sil_k:
+            st.success(f"All metrics agree on k = {optimal_k}")
+        elif method_used.startswith("Consensus"):
+            st.success(f"Strong Agreement: {method_used}")
+        else:
+            st.info(f"Davies-Bouldin Priority: {method_used}")
+
+        
+        # Quality assessment
+        selected_db = db_scores[list(cluster_range).index(optimal_k)]
+        selected_ch = ch_scores[list(cluster_range).index(optimal_k)]
+        selected_sil = sil_scores[list(cluster_range).index(optimal_k)]
+        
+        col1, col2, col3 = st.columns(3)
+        
+        with col1:
+            st.metric(
+                label="Selected Clusters", 
+                value=optimal_k,
+                help=method_used
+            )
+        
+        with col2:
+            st.metric(
+                label="Davies-Bouldin Score", 
+                value=f"{selected_db:.4f}",
+                help="Lower is better"
+            )
+        
+        with col3:
+            st.metric(
+                label="Calinski-Harabasz Score", 
+                value=f"{selected_ch:.2f}",
+                help="Higher is better"
+            )
+        
+        # Overall quality assessment
+        if selected_sil > 0.5:
+            st.success(f"Excellent clustering quality (Silhouette: {selected_sil:.4f})")
+        elif selected_sil > 0.25:
+            st.info(f"Good clustering quality (Silhouette: {selected_sil:.4f})")
+        else:
+            st.warning(f"Fair clustering quality (Silhouette: {selected_sil:.4f})")
+    return optimal_k
+
 
 
 def plot_dendrogram(model, X):

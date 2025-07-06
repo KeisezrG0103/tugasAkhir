@@ -820,43 +820,6 @@ with tabs[1]:
         else:
             st.info("Tidak ada kluster tersedia untuk ditampilkan")
 
-    # Continue with the rest of your code for domain averages
-    st.subheader("Rata-rata Domain per Kluster")
-
-    # Prepare data for chart - with error handling
-    domain_avg_data = []
-    if cluster_summary["clusters"]:
-        for cluster_name, cluster_data in cluster_summary["clusters"].items():
-            for domain, avg in cluster_data.get("domain_averages", {}).items():
-                if avg is not None:
-                    try:
-                        domain_avg_data.append({
-                            "Cluster": cluster_name,
-                            "Domain": cluster_summary["domains"].get(domain, domain),
-                            "Average": float(avg)
-                        })
-                    except (ValueError, TypeError) as e:
-                        st.warning(
-                            f"Could not convert value for {domain} in {cluster_name}: {e}")
-
-    # Create chart with error handling
-    if domain_avg_data:
-        try:
-            domain_df = pd.DataFrame(domain_avg_data)
-            fig = px.bar(
-                domain_df,
-                x="Domain",
-                y="Average",
-                color="Cluster",
-                barmode="group",
-                title="Domain Averages by Cluster"
-            )
-            st.plotly_chart(fig, use_container_width=True)
-        except Exception as e:
-            st.error(f"Error creating domain average chart: {e}")
-            st.write("Raw domain data:", domain_avg_data)
-    else:
-        st.info("No domain average data available for visualization")
 with tabs[2]:
     st.subheader("Fitur Signifikan (Hasil ANOVA)")
 
@@ -1111,17 +1074,17 @@ Format respons dengan judul, poin-poin yang jelas, dan dalam Bahasa Indonesia.
 st.session_state.prompt_text = prompt_text
 
 # Advanced options
-with st.expander("Advanced Prompt Options"):
-    custom_prompt = st.text_area(
-        "Customize AI Analysis Prompt",
-        value=prompt_text,
-        height=300,
-        help="Edit the prompt to customize the AI analysis"
-    )
+# with st.expander("Advanced Prompt Options"):
+#     custom_prompt = st.text_area(
+#         "Customize AI Analysis Prompt",
+#         value=prompt_text,
+#         height=300,
+#         help="Edit the prompt to customize the AI analysis"
+#     )
 
-    if custom_prompt != prompt_text:
-        prompt_text = custom_prompt
-        st.success("Custom prompt will be used")
+#     if custom_prompt != prompt_text:
+#         prompt_text = custom_prompt
+#         st.success("Custom prompt will be used")
 
 # --------------------------------------
 # 6. AI ANALYSIS GENERATION
