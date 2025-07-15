@@ -131,12 +131,11 @@ url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash
 # --------------------------------------
 st.sidebar.header("Data Status")
 
-# Check for required session state variables - UPDATED KEYS
 required_data = {
-    'clustered_data': 'Cluster results',  # Changed from cluster_results_df
-    'domain_cluster_results': 'Domain clustering results',  # Changed from summary
+    'clustered_data': 'Cluster results', 
+    'domain_cluster_results': 'Domain clustering results', 
     'anova_results': 'ANOVA analysis',
-    'algorithm_metrics': 'Algorithm metrics'  # Changed from individual metrics
+    'algorithm_metrics': 'Algorithm metrics'  
 }
 
 # Create status indicators
@@ -413,11 +412,9 @@ with tabs[0]:
 
                     feature_means = cluster_data[domain_features].mean()
 
-                    # Selalu gunakan nilai yang sudah dihitung di halaman Training
                     training_key = f"domain_mean_{domain}_cluster_{cluster_id}"
                     domain_avg = None
 
-                    # Coba ambil nilai dari session state dengan berbagai kemungkinan format key
                     possible_keys = [
                         f"domain_mean_{domain}_cluster_{cluster_id}",
                         f"{domain}_cluster_{cluster_id}_mean",
@@ -433,7 +430,6 @@ with tabs[0]:
                                 st.success(f"Nilai dari Training: {key}")
                                 break
 
-                    # Jika tidak ditemukan di cluster_statistics, coba di root session state
                     if domain_avg is None:
                         for key in possible_keys:
                             if key in st.session_state:
@@ -448,18 +444,15 @@ with tabs[0]:
                             domain_avg = st.session_state.domain_averages[key]
                             st.success(f"Nilai dari domain_averages: {key}")
 
-                    # Fallback: gunakan nilai yang sudah dihitung di awal
                     if domain_avg is None:
                         st.warning(
                             f"Nilai tidak ditemukan di Training. Menghitung ulang...")
                         domain_avg = feature_means.mean() if not feature_means.empty else 0
 
-                        # Simpan untuk konsistensi berikutnya
                         if 'domain_averages' not in st.session_state:
                             st.session_state.domain_averages = {}
                         st.session_state.domain_averages[f"{domain}_cluster_{cluster_id}"] = domain_avg
 
-                    # Display domain average with better formatting
                     st.metric(f"Rata-rata {domain_name}", f"{domain_avg:.2f}")
 
                     # Create heatmap of feature means
@@ -646,11 +639,9 @@ with tabs[0]:
         st.info(
             "Minimal diperlukan 2 domain dengan data clustering untuk analisis pola")
 
-    # Create the unified cluster summary for general clusters as well
-    # Add domain cluster information to the summary
+
     st.subheader("Ringkasan Cluster per Domain")
 
-    # Initialize clusters object in summary for domain-specific stats
     cluster_summary["clusters"] = {}
 
     # Process each domain separately
@@ -983,7 +974,7 @@ with tabs[3]:
 # --------------------------------------
 st.subheader("Analisis menggunakan Kecerdasan Buatan")
 
-# Create prompt with comprehensive data
+
 prompt_text = f"""
 # DATA DAN KONTEKS ANALISIS
 
@@ -1188,34 +1179,32 @@ elif "ai_analysis" in st.session_state and st.session_state.ai_analysis:
             "text/markdown"
         )
 
-# Add this section right before the AI Analysis generation (around line 1600)
 
-with st.expander("Debug Value Consistency"):
-    st.subheader("Verify Value Consistency")
+# with st.expander("Debug Value Consistency"):
+#     st.subheader("Verify Value Consistency")
 
-    if 'domain_averages' in st.session_state:
-        st.write("### Domain Averages from Calculations")
-        for key, value in st.session_state.domain_averages.items():
-            st.write(f"{key}: {value}")
+#     if 'domain_averages' in st.session_state:
+#         st.write("### Domain Averages from Calculations")
+#         for key, value in st.session_state.domain_averages.items():
+#             st.write(f"{key}: {value}")
 
-    if 'cluster_statistics' in st.session_state:
-        st.write("### Values from Training Page")
-        training_values = {}
-        for key in st.session_state.cluster_statistics:
-            if "_mean" in key or "mean_" in key:
-                training_values[key] = st.session_state.cluster_statistics[key]
+#     if 'cluster_statistics' in st.session_state:
+#         st.write("### Values from Training Page")
+#         training_values = {}
+#         for key in st.session_state.cluster_statistics:
+#             if "_mean" in key or "mean_" in key:
+#                 training_values[key] = st.session_state.cluster_statistics[key]
 
-        st.dataframe(pd.DataFrame(
-            training_values.items(), columns=["Key", "Value"]))
+#         st.dataframe(pd.DataFrame(
+#             training_values.items(), columns=["Key", "Value"]))
 
-    # Extract values actually used in AI analysis JSON
-    st.write("### Values Used in AI Analysis JSON")
-    domain_values = {}
-    for domain in ["fa", "fb", "fk", "m"]:
-        if f"{domain}_clusters" in cluster_summary:
-            for key, data in cluster_summary[f"{domain}_clusters"].items():
-                if "domain_average" in data:
-                    domain_values[key] = data["domain_average"]
+#     st.write("### Values Used in AI Analysis JSON")
+#     domain_values = {}
+#     for domain in ["fa", "fb", "fk", "m"]:
+#         if f"{domain}_clusters" in cluster_summary:
+#             for key, data in cluster_summary[f"{domain}_clusters"].items():
+#                 if "domain_average" in data:
+#                     domain_values[key] = data["domain_average"]
 
-    st.dataframe(pd.DataFrame(domain_values.items(),
-                 columns=["Cluster", "Value Used in AI"]))
+#     st.dataframe(pd.DataFrame(domain_values.items(),
+#                  columns=["Cluster", "Value Used in AI"]))
